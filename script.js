@@ -1,7 +1,7 @@
 const SPREADSHEET_ID = '1atuDQUwMD7lud9omrIBCUjPx6fb0TEj0XfwBKqaRllM'; // ID spreadsheet Anda
 const API_KEY = 'AIzaSyBuqQ8CXTAcEvMvZpoqzz8f62zUWPCOb4M'; // API Key Anda
-const RANGE_PART_NUMBER = 'Sheet1!A:C'; // Ambil kolom A (Part Number), B (ID File), dan C (Instruksi)
-const RANGE_E1 = 'Sheet1!E1'; // Ambil Part Number di E1
+const RANGE_PART_NUMBER = 'TR 2000t!A:C'; // Ambil kolom A (Part Number), B (ID File), dan C (Instruksi)
+const RANGE_E1 = 'TR 2000t!E1'; // Ambil Part Number di E1
 
 let previousPartNumber = null; // Menyimpan nilai E1 sebelumnya untuk mendeteksi perubahan
 
