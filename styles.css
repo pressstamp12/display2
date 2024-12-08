@@ -1,0 +1,36 @@
+<style>
+    #file-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center; /* Pusatkan dokumen secara horizontal */
+        align-items: center; /* Pusatkan dokumen secara vertikal */
+        background-color: #000; /* Latar belakang hitam untuk estetika */
+        overflow: hidden;
+    }
+
+    #file-display iframe {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto; /* Sesuaikan lebar berdasarkan rasio */
+        height: auto; /* Sesuaikan tinggi berdasarkan rasio */
+        border: none;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* Efek bayangan untuk estetika */
+    }
+
+    #instruction {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        max-width: 90%;
+        text-align: center;
+        z-index: 10;
+        pointer-events: none;
+    }
+</style>
