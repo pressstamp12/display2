@@ -3,45 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Viewer Google Drive</title>
+    <title>Display Monitoring Produksi - TR 2000T</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        #file-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            margin: 0;
-            padding: 0;
-        }
-
-        #file-display iframe {
-            width: 100%;
-            height: 100vh;
-            border: none;
-        }
-
-        #instruction {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            max-width: 90%;
-            text-align: center;
-            z-index: 10;
-            pointer-events: none;
-        }
-    </style>
 </head>
 <body>
+    <!-- Pelapis transparan tanpa teks untuk memicu Fullscreen saat diklik -->
+    <div id="fullscreen-catcher"></div>
+
     <div id="file-container">
+        <!-- Bar Atas "SEDANG PRODUKSI" -->
+        <div id="production-banner" class="hidden">
+            <span class="pulse-dot"></span>
+            <span id="production-text">SEDANG PRODUKSI</span>
+        </div>
+
+        <!-- Area Tampilan File Google Drive -->
         <div id="file-display"></div>
-        <div id="instruction"></div>
+
+        <!-- Keterangan Instruksi Tambahan (Kolom C) -->
+        <div id="instruction" class="hidden"></div>
+
+        <!-- Pesan Error / Status Jaringan -->
+        <div id="error-toast" class="hidden"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
