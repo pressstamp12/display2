@@ -10,22 +10,158 @@
     <!-- Pelapis transparan tanpa teks untuk memicu Fullscreen saat diklik -->
     <div id="fullscreen-catcher"></div>
 
-    <div id="file-container">
-        <!-- Bar Atas "SEDANG PRODUKSI" -->
-        <div id="production-banner" class="hidden">
-            <span class="pulse-dot"></span>
-            <span id="production-text">SEDANG PRODUKSI</span>
-        </div>
+    <div id="app-layout">
+        <!-- KOLOM KIRI: Visualisasi Aktivitas (Produksi / Non Produksi) -->
+        <main id="visual-column">
+            <!-- Bar Atas "SEDANG PRODUKSI" (otomatis tersembunyi saat NON PRODUKSI) -->
+            <div id="production-banner" class="hidden">
+                <span class="pulse-dot"></span>
+                <span id="production-text">SEDANG PRODUKSI</span>
+            </div>
 
-        <!-- Area Tampilan File Google Drive -->
-        <div id="file-display"></div>
+            <!-- Area Tampilan File Google Drive -->
+            <div id="file-display"></div>
 
-        <!-- Keterangan Instruksi Tambahan (Kolom C) -->
-        <div id="instruction" class="hidden"></div>
+            <!-- Keterangan Status di Bawah Visualisasi (Kolom C) -->
+            <div id="instruction" class="hidden"></div>
+        </main>
 
-        <!-- Pesan Error / Status Jaringan -->
-        <div id="error-toast" class="hidden"></div>
+        <!-- KOLOM KANAN: Panel Performance Line TR 2000T (Range E2:F7) -->
+        <aside id="performance-panel">
+            <div class="panel-header">
+                <div class="panel-title-wrap">
+                    <span class="panel-title">LINE PERFORMANCE</span>
+                    <span class="panel-subtitle">Basis 100% Working Hour</span>
+                </div>
+                <span class="line-badge">TR 2000T</span>
+            </div>
+
+            <!-- Kartu Utama: AVAILABILITY (F7) + Bar Komposisi 100% WH -->
+            <section class="hero-card status-good" id="availability-card">
+                <div class="hero-top">
+                    <span class="hero-label" id="label-5">AVAILABILITY</span>
+                    <span class="hero-status-badge" id="avail-badge">100% WH</span>
+                </div>
+
+                <div class="hero-value-row">
+                    <span class="hero-value" id="value-5">-</span>
+                </div>
+
+                <div class="hero-submetrics">
+                    <div class="submetric">
+                        <span class="submetric-label">RUNNING</span>
+                        <span class="submetric-val running-val" id="running-minutes">- minutes</span>
+                    </div>
+                    <div class="submetric align-right">
+                        <span class="submetric-label">TOTAL LOSS</span>
+                        <span class="submetric-val loss-val" id="total-loss-summary">- minutes (0.0%)</span>
+                    </div>
+                </div>
+
+                <!-- Bar Komposisi 100% WH -->
+                <div class="composition-wrap">
+                    <div class="stacked-bar" aria-label="Komposisi 100% Working Hour">
+                        <div class="seg seg-avail" id="seg-avail" style="width: 0%;"></div>
+                        <div class="seg seg-dandori" id="seg-dandori" style="width: 0%;"></div>
+                        <div class="seg seg-dies" id="seg-dies" style="width: 0%;"></div>
+                        <div class="seg seg-machine" id="seg-machine" style="width: 0%;"></div>
+                        <div class="seg seg-other" id="seg-other" style="width: 0%;"></div>
+                    </div>
+                    <div class="composition-footer">
+                        <span id="comp-avail-text">Avail: 0.0%</span>
+                        <span id="comp-loss-text">Loss: 0.0%</span>
+                        <span class="comp-total">Total: 100%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kartu WH (F2) -->
+            <section class="wh-card">
+                <div class="wh-left">
+                    <span class="wh-label" id="label-0">WH</span>
+                    <span class="wh-desc">Working Hour (100%)</span>
+                </div>
+                <div class="wh-right">
+                    <span class="wh-value" id="value-0">-</span>
+                    <span class="unit-text">minutes</span>
+                </div>
+            </section>
+
+            <!-- Daftar Loss Time (F3:F6) dengan satuan minutes & % terhadap WH -->
+            <section class="loss-list">
+                <div class="loss-card loss-dandori">
+                    <div class="loss-row-top">
+                        <div class="loss-name-wrap">
+                            <span class="color-dot dot-dandori"></span>
+                            <span class="loss-label" id="label-1">DANDORI</span>
+                        </div>
+                        <span class="loss-pct" id="pct-1">0.0%</span>
+                    </div>
+                    <div class="loss-row-mid">
+                        <span class="loss-value" id="value-1">-</span>
+                        <span class="unit-text">minutes</span>
+                    </div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill fill-dandori" id="bar-1" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="loss-card loss-dies">
+                    <div class="loss-row-top">
+                        <div class="loss-name-wrap">
+                            <span class="color-dot dot-dies"></span>
+                            <span class="loss-label" id="label-2">DIES/FINGER</span>
+                        </div>
+                        <span class="loss-pct" id="pct-2">0.0%</span>
+                    </div>
+                    <div class="loss-row-mid">
+                        <span class="loss-value" id="value-2">-</span>
+                        <span class="unit-text">minutes</span>
+                    </div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill fill-dies" id="bar-2" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="loss-card loss-machine">
+                    <div class="loss-row-top">
+                        <div class="loss-name-wrap">
+                            <span class="color-dot dot-machine"></span>
+                            <span class="loss-label" id="label-3">MACHINE</span>
+                        </div>
+                        <span class="loss-pct" id="pct-3">0.0%</span>
+                    </div>
+                    <div class="loss-row-mid">
+                        <span class="loss-value" id="value-3">-</span>
+                        <span class="unit-text">minutes</span>
+                    </div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill fill-machine" id="bar-3" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="loss-card loss-other">
+                    <div class="loss-row-top">
+                        <div class="loss-name-wrap">
+                            <span class="color-dot dot-other"></span>
+                            <span class="loss-label" id="label-4">OTHER</span>
+                        </div>
+                        <span class="loss-pct" id="pct-4">0.0%</span>
+                    </div>
+                    <div class="loss-row-mid">
+                        <span class="loss-value" id="value-4">-</span>
+                        <span class="unit-text">minutes</span>
+                    </div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill fill-other" id="bar-4" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </section>
+        </aside>
     </div>
+
+    <!-- Pesan Error / Status Jaringan -->
+    <div id="error-toast" class="hidden"></div>
 
     <script src="script.js"></script>
 </body>
