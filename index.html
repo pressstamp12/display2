@@ -26,17 +26,17 @@
             <div id="instruction" class="hidden"></div>
         </main>
 
-        <!-- KOLOM KANAN: Panel Performance Line TR 2000T (Range E2:F7) -->
+        <!-- KOLOM KANAN: Panel Performance Line TR 2000T (Range E2:G7) -->
         <aside id="performance-panel">
             <div class="panel-header">
                 <div class="panel-title-wrap">
                     <span class="panel-title">LINE PERFORMANCE</span>
-                    <span class="panel-subtitle">Basis 100% Working Hour</span>
+                    <span class="panel-subtitle">Actual vs Target (Basis 100% WH)</span>
                 </div>
                 <span class="line-badge">TR 2000T</span>
             </div>
 
-            <!-- Kartu Utama: AVAILABILITY (F7) + Bar Komposisi 100% WH -->
+            <!-- Kartu Utama: AVAILABILITY (F7) vs TARGET (G7) + Bar Komposisi 100% WH -->
             <section class="hero-card status-good" id="availability-card">
                 <div class="hero-top">
                     <span class="hero-label" id="label-5">AVAILABILITY</span>
@@ -45,6 +45,10 @@
 
                 <div class="hero-value-row">
                     <span class="hero-value" id="value-5">-</span>
+                    <div class="hero-target-box hidden" id="avail-target-box">
+                        <span class="hero-target-label" id="avail-target-text">Target ≥ -</span>
+                        <span class="hero-target-delta" id="avail-delta-text">-</span>
+                    </div>
                 </div>
 
                 <div class="hero-submetrics">
@@ -53,24 +57,27 @@
                         <span class="submetric-val running-val" id="running-minutes">- minutes</span>
                     </div>
                     <div class="submetric align-right">
-                        <span class="submetric-label">TOTAL LOSS</span>
+                        <span class="submetric-label" id="total-loss-label">TOTAL LOSS</span>
                         <span class="submetric-val loss-val" id="total-loss-summary">- minutes (0.0%)</span>
                     </div>
                 </div>
 
-                <!-- Bar Komposisi 100% WH -->
+                <!-- Bar Komposisi 100% WH + Garis Target Availability -->
                 <div class="composition-wrap">
-                    <div class="stacked-bar" aria-label="Komposisi 100% Working Hour">
-                        <div class="seg seg-avail" id="seg-avail" style="width: 0%;"></div>
-                        <div class="seg seg-dandori" id="seg-dandori" style="width: 0%;"></div>
-                        <div class="seg seg-dies" id="seg-dies" style="width: 0%;"></div>
-                        <div class="seg seg-machine" id="seg-machine" style="width: 0%;"></div>
-                        <div class="seg seg-other" id="seg-other" style="width: 0%;"></div>
+                    <div class="stacked-bar-container">
+                        <div class="stacked-bar" aria-label="Komposisi 100% Working Hour">
+                            <div class="seg seg-avail" id="seg-avail" style="width: 0%;"></div>
+                            <div class="seg seg-dandori" id="seg-dandori" style="width: 0%;"></div>
+                            <div class="seg seg-dies" id="seg-dies" style="width: 0%;"></div>
+                            <div class="seg seg-machine" id="seg-machine" style="width: 0%;"></div>
+                            <div class="seg seg-other" id="seg-other" style="width: 0%;"></div>
+                        </div>
+                        <div class="bar-target-marker hidden" id="avail-target-marker" title="Garis Target Availability"></div>
                     </div>
                     <div class="composition-footer">
                         <span id="comp-avail-text">Avail: 0.0%</span>
                         <span id="comp-loss-text">Loss: 0.0%</span>
-                        <span class="comp-total">Total: 100%</span>
+                        <span class="comp-total" id="comp-target-text">Total: 100%</span>
                     </div>
                 </div>
             </section>
@@ -87,9 +94,9 @@
                 </div>
             </section>
 
-            <!-- Daftar Loss Time (F3:F6) dengan satuan minutes & % terhadap WH -->
+            <!-- Daftar Loss Time (F3:F6) vs Target (G3:G6) -->
             <section class="loss-list">
-                <div class="loss-card loss-dandori">
+                <div class="loss-card loss-dandori" id="loss-card-1">
                     <div class="loss-row-top">
                         <div class="loss-name-wrap">
                             <span class="color-dot dot-dandori"></span>
@@ -98,15 +105,21 @@
                         <span class="loss-pct" id="pct-1">0.0%</span>
                     </div>
                     <div class="loss-row-mid">
-                        <span class="loss-value" id="value-1">-</span>
-                        <span class="unit-text">minutes</span>
+                        <div class="loss-minutes-wrap">
+                            <span class="loss-value" id="value-1">-</span>
+                            <span class="unit-text">minutes</span>
+                        </div>
+                        <span class="loss-target-badge hidden" id="target-1">Tgt ≤ -</span>
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill fill-dandori" id="bar-1" style="width: 0%;"></div>
+                    <div class="mini-bar-container">
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill fill-dandori" id="bar-1" style="width: 0%;"></div>
+                        </div>
+                        <div class="mini-target-marker hidden" id="marker-1" title="Batas Target"></div>
                     </div>
                 </div>
 
-                <div class="loss-card loss-dies">
+                <div class="loss-card loss-dies" id="loss-card-2">
                     <div class="loss-row-top">
                         <div class="loss-name-wrap">
                             <span class="color-dot dot-dies"></span>
@@ -115,15 +128,21 @@
                         <span class="loss-pct" id="pct-2">0.0%</span>
                     </div>
                     <div class="loss-row-mid">
-                        <span class="loss-value" id="value-2">-</span>
-                        <span class="unit-text">minutes</span>
+                        <div class="loss-minutes-wrap">
+                            <span class="loss-value" id="value-2">-</span>
+                            <span class="unit-text">minutes</span>
+                        </div>
+                        <span class="loss-target-badge hidden" id="target-2">Tgt ≤ -</span>
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill fill-dies" id="bar-2" style="width: 0%;"></div>
+                    <div class="mini-bar-container">
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill fill-dies" id="bar-2" style="width: 0%;"></div>
+                        </div>
+                        <div class="mini-target-marker hidden" id="marker-2" title="Batas Target"></div>
                     </div>
                 </div>
 
-                <div class="loss-card loss-machine">
+                <div class="loss-card loss-machine" id="loss-card-3">
                     <div class="loss-row-top">
                         <div class="loss-name-wrap">
                             <span class="color-dot dot-machine"></span>
@@ -132,15 +151,21 @@
                         <span class="loss-pct" id="pct-3">0.0%</span>
                     </div>
                     <div class="loss-row-mid">
-                        <span class="loss-value" id="value-3">-</span>
-                        <span class="unit-text">minutes</span>
+                        <div class="loss-minutes-wrap">
+                            <span class="loss-value" id="value-3">-</span>
+                            <span class="unit-text">minutes</span>
+                        </div>
+                        <span class="loss-target-badge hidden" id="target-3">Tgt ≤ -</span>
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill fill-machine" id="bar-3" style="width: 0%;"></div>
+                    <div class="mini-bar-container">
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill fill-machine" id="bar-3" style="width: 0%;"></div>
+                        </div>
+                        <div class="mini-target-marker hidden" id="marker-3" title="Batas Target"></div>
                     </div>
                 </div>
 
-                <div class="loss-card loss-other">
+                <div class="loss-card loss-other" id="loss-card-4">
                     <div class="loss-row-top">
                         <div class="loss-name-wrap">
                             <span class="color-dot dot-other"></span>
@@ -149,11 +174,17 @@
                         <span class="loss-pct" id="pct-4">0.0%</span>
                     </div>
                     <div class="loss-row-mid">
-                        <span class="loss-value" id="value-4">-</span>
-                        <span class="unit-text">minutes</span>
+                        <div class="loss-minutes-wrap">
+                            <span class="loss-value" id="value-4">-</span>
+                            <span class="unit-text">minutes</span>
+                        </div>
+                        <span class="loss-target-badge hidden" id="target-4">Tgt ≤ -</span>
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill fill-other" id="bar-4" style="width: 0%;"></div>
+                    <div class="mini-bar-container">
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill fill-other" id="bar-4" style="width: 0%;"></div>
+                        </div>
+                        <div class="mini-target-marker hidden" id="marker-4" title="Batas Target"></div>
                     </div>
                 </div>
             </section>
