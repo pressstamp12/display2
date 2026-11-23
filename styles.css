@@ -1,3 +1,23 @@
+:root {
+    /* Ubah angka vw di tengah (misal 24vw - 34vw) untuk menyesuaikan lebar panel kanan di TV */
+    --right-panel-width: clamp(300px, 28vw, 460px);
+
+    --bg-dark: #070b14;
+    --panel-bg: #0b1120;
+    --card-bg: #121b30;
+    --card-border: #22304d;
+
+    --color-avail-good: #22c55e;
+    --color-avail-warn: #f59e0b;
+    --color-avail-bad: #ef4444;
+
+    --color-wh: #38bdf8;
+    --color-dandori: #f59e0b;
+    --color-dies: #fb923c;
+    --color-machine: #f43f5e;
+    --color-other: #a78bfa;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -9,13 +29,26 @@ body, html {
     width: 100vw;
     height: 100vh;
     background-color: #000;
+    color: #f8fafc;
     overflow: hidden;
     user-select: none;
 }
 
-#file-container {
+/* Tata Letak Utama 2 Kolom: Kiri (Visualisasi) + Kanan (Performance) */
+#app-layout {
     position: relative;
     width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    background-color: #000;
+    overflow: hidden;
+}
+
+/* ================= KOLOM KIRI: VISUALISASI ================= */
+#visual-column {
+    flex: 1;
+    min-width: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -28,29 +61,30 @@ body, html {
     width: 100%;
     background: linear-gradient(90deg, #15803d, #16a34a, #15803d);
     color: #ffffff;
-    padding: 8px 24px;
-    font-size: 2rem;
+    padding: 8px 20px;
+    font-size: clamp(1.2rem, 2vw, 1.9rem);
     font-weight: 900;
     letter-spacing: 2px;
     text-transform: uppercase;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     border-bottom: 3px solid #4ade80;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.55);
     z-index: 20;
     flex-shrink: 0;
 }
 
 /* Efek Lampu Indikator Berkedip */
 .pulse-dot {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-color: #86efac;
     border-radius: 50%;
     box-shadow: 0 0 12px #86efac;
     animation: pulse 1.2s infinite ease-in-out;
+    flex-shrink: 0;
 }
 
 @keyframes pulse {
@@ -59,33 +93,430 @@ body, html {
     100% { transform: scale(0.9); opacity: 0.7; }
 }
 
-/* Area Dokumen Mengisi Sisa Ruang Layar */
+/* Area Dokumen Google Drive */
 #file-display {
     flex: 1;
+    min-height: 0;
     width: 100%;
-    height: 100%;
     overflow: hidden;
+    background-color: #000;
 }
 
 #file-display iframe {
     width: 100%;
     height: 100%;
     border: none;
+    display: block;
 }
 
-/* Keterangan Instruksi (Kolom C) */
+/* Keterangan Status di Bawah Visualisasi (Kolom C) */
 #instruction {
     width: 100%;
     background: #1e293b;
     color: #facc15;
-    padding: 6px 20px;
-    font-size: 1.2rem;
-    font-weight: bold;
+    padding: 7px 18px;
+    font-size: clamp(1rem, 1.35vw, 1.35rem);
+    font-weight: 800;
+    letter-spacing: 1.5px;
     text-align: center;
+    text-transform: uppercase;
     border-top: 2px solid #facc15;
     flex-shrink: 0;
 }
 
+#instruction.status-non-produksi {
+    background: #3b1d0a;
+    color: #fbbf24;
+    border-top-color: #f59e0b;
+}
+
+#instruction.status-produksi {
+    background: #0f291e;
+    color: #4ade80;
+    border-top-color: #22c55e;
+}
+
+/* ================= KOLOM KANAN: PERFORMANCE PANEL ================= */
+#performance-panel {
+    width: var(--right-panel-width);
+    flex-shrink: 0;
+    height: 100vh;
+    background: linear-gradient(180deg, #0b1120 0%, #070b14 100%);
+    border-left: 2px solid #1e293b;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    z-index: 15;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e293b;
+    flex-shrink: 0;
+}
+
+.panel-title-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title {
+    font-size: clamp(0.95rem, 1.2vw, 1.2rem);
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    color: #f1f5f9;
+}
+
+.panel-subtitle {
+    font-size: clamp(0.68rem, 0.75vw, 0.8rem);
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.line-badge {
+    background: #1d4ed8;
+    color: #eff6ff;
+    border: 1px solid #60a5fa;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: clamp(0.75rem, 0.9vw, 0.9rem);
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* ---------- Kartu Utama: AVAILABILITY ---------- */
+.hero-card {
+    background: linear-gradient(160deg, #0e291d 0%, #0b1919 100%);
+    border: 1px solid #166534;
+    border-left: 5px solid var(--color-avail-good);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.hero-card.status-good {
+    background: linear-gradient(160deg, #0d2b1d 0%, #0b1817 100%);
+    border-color: #166534;
+    border-left-color: var(--color-avail-good);
+}
+.hero-card.status-good .hero-value { color: #4ade80; }
+.hero-card.status-good .hero-status-badge {
+    background: rgba(34, 197, 94, 0.16);
+    color: #86efac;
+    border-color: rgba(74, 222, 128, 0.4);
+}
+
+.hero-card.status-warn {
+    background: linear-gradient(160deg, #2d200b 0%, #17130c 100%);
+    border-color: #854d0e;
+    border-left-color: var(--color-avail-warn);
+}
+.hero-card.status-warn .hero-value { color: #facc15; }
+.hero-card.status-warn .hero-status-badge {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fde047;
+    border-color: rgba(250, 204, 21, 0.45);
+}
+
+.hero-card.status-bad {
+    background: linear-gradient(160deg, #321016 0%, #190d11 100%);
+    border-color: #991b1b;
+    border-left-color: var(--color-avail-bad);
+}
+.hero-card.status-bad .hero-value { color: #f87171; }
+.hero-card.status-bad .hero-status-badge {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.45);
+}
+
+.hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hero-label {
+    font-size: clamp(0.85rem, 1vw, 1.05rem);
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    color: #cbd5e1;
+    text-transform: uppercase;
+}
+
+.hero-status-badge {
+    font-size: clamp(0.68rem, 0.78vw, 0.8rem);
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    letter-spacing: 0.6px;
+}
+
+.hero-value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+}
+
+.hero-value {
+    font-size: clamp(2.2rem, 3.6vw, 3.6rem);
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-submetrics {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.submetric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.submetric.align-right {
+    text-align: right;
+}
+
+.submetric-label {
+    font-size: clamp(0.62rem, 0.7vw, 0.72rem);
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.8px;
+}
+
+.submetric-val {
+    font-size: clamp(0.76rem, 0.9vw, 0.92rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.running-val { color: #86efac; }
+.loss-val { color: #fda4af; }
+
+/* Bar Komposisi 100% WH */
+.composition-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 2px;
+}
+
+.stacked-bar {
+    width: 100%;
+    height: 12px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.seg {
+    height: 100%;
+    transition: width 0.4s ease;
+}
+
+.seg-avail   { background: var(--color-avail-good); }
+.seg-dandori { background: var(--color-dandori); }
+.seg-dies    { background: var(--color-dies); }
+.seg-machine { background: var(--color-machine); }
+.seg-other   { background: var(--color-other); }
+
+.composition-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(0.66rem, 0.74vw, 0.78rem);
+    font-weight: 700;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+}
+
+.comp-total {
+    color: #38bdf8;
+    font-weight: 800;
+}
+
+/* ---------- Kartu WH (Basis 100%) ---------- */
+.wh-card {
+    background: linear-gradient(90deg, #0f1f38 0%, #121b30 100%);
+    border: 1px solid #1e3a5f;
+    border-left: 5px solid var(--color-wh);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.wh-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.wh-label {
+    font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+    font-weight: 900;
+    color: #e0f2fe;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.wh-desc {
+    font-size: clamp(0.68rem, 0.75vw, 0.78rem);
+    color: #7dd3fc;
+    font-weight: 600;
+}
+
+.wh-right {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.wh-value {
+    font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+    font-weight: 900;
+    color: #38bdf8;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.unit-text {
+    font-size: clamp(0.75rem, 0.88vw, 0.92rem);
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: lowercase;
+}
+
+/* ---------- Daftar 4 Kartu Loss Time ---------- */
+.loss-list {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.loss-card {
+    flex: 1;
+    min-height: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 5px solid #64748b;
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+}
+
+.loss-dandori { border-left-color: var(--color-dandori); }
+.loss-dies    { border-left-color: var(--color-dies); }
+.loss-machine { border-left-color: var(--color-machine); }
+.loss-other   { border-left-color: var(--color-other); }
+
+.loss-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.loss-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-dandori { background: var(--color-dandori); }
+.dot-dies    { background: var(--color-dies); }
+.dot-machine { background: var(--color-machine); }
+.dot-other   { background: var(--color-other); }
+
+.loss-label {
+    font-size: clamp(0.82rem, 1vw, 1.02rem);
+    font-weight: 800;
+    color: #e2e8f0;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.loss-pct {
+    font-size: clamp(0.95rem, 1.25vw, 1.25rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.loss-dandori .loss-pct { color: #fcd34d; }
+.loss-dies    .loss-pct { color: #fdba74; }
+.loss-machine .loss-pct { color: #fda4af; }
+.loss-other   .loss-pct { color: #c4b5fd; }
+
+.loss-row-mid {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.loss-value {
+    font-size: clamp(1.35rem, 2vw, 2.05rem);
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.mini-bar-track {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mini-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.fill-dandori { background: var(--color-dandori); }
+.fill-dies    { background: var(--color-dies); }
+.fill-machine { background: var(--color-machine); }
+.fill-other   { background: var(--color-other); }
+
+/* ================= OVERLAY & NOTIFIKASI ================= */
 /* Pelapis Penangkap Klik 100% Transparan (Tanpa Teks) */
 #fullscreen-catcher {
     position: fixed;
@@ -99,17 +530,18 @@ body, html {
 
 /* Notifikasi Error */
 #error-toast {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    background: rgba(220, 38, 38, 0.9);
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    background: rgba(220, 38, 38, 0.92);
     color: #fff;
     padding: 10px 18px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.95rem;
     font-weight: bold;
     z-index: 30;
     pointer-events: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 .hidden {
