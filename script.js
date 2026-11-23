@@ -1,7 +1,7 @@
 const SPREADSHEET_ID = '1atuDQUwMD7lud9omrIBCUjPx6fb0TEj0XfwBKqaRllM';
 const API_KEY = 'AIzaSyBuqQ8CXTAcEvMvZpoqzz8f62zUWPCOb4M';
 const RANGE_PART_NUMBER = 'TR 2000t!A:C'; // Kolom A (Part Number), B (ID Drive), C (Keterangan)
-const RANGE_LIVE_DATA = 'TR 2000t!E1:F7'; // E1 (Part/Aktivitas Aktif) + E2:F7 (Label & Angka Performance)
+const RANGE_LIVE_DATA = 'TR 2000t!E1:G7'; // E1 (Part Aktif) + E2:F7 (Label & Actual) + G2:G7 (Target)
 
 // Cadangan daftar aktivitas non-produksi jika kolom C kebetulan kosong
 const NON_PRODUCTION_ACTIVITIES = ['WATARI', 'DANDORI', 'TRIAL', 'TPM', 'KS1', 'KS2', '5S'];
@@ -60,7 +60,6 @@ function parseSheetNumber(raw) {
     const hasDot = cleaned.includes('.');
 
     if (hasComma && hasDot) {
-        // Pemisah yang paling kanan dianggap sebagai desimal
         if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
             cleaned = cleaned.replace(/\./g, '').replace(',', '.');
         } else {
@@ -84,6 +83,22 @@ function parseSheetNumber(raw) {
     return Number.isFinite(num) ? num : null;
 }
 
+// Konversi nilai persentase dari Sheets (mis. 0.11 -> 11, 0.79 -> 79, atau "11%" -> 11)
+function parseSheetPercent(raw) {
+    if (raw === undefined || raw === null) return null;
+    const str = String(raw).trim();
+    if (!str || str === '-') return null;
+
+    let num = parseSheetNumber(raw);
+    if (num === null) return null;
+
+    // Pada UNFORMATTED_VALUE, persentase Sheets (0%..100%) dikirim sebagai 0..1
+    if (!str.includes('%') && num > 0 && num <= 1) {
+        num = num * 100;
+    }
+    return num;
+}
+
 // Format angka menit (pakai pemisah ribuan koma agar tidak tertukar dengan desimal)
 function formatMinutes(num) {
     if (num === null || !Number.isFinite(num)) return '-';
@@ -94,14 +109,20 @@ function formatMinutes(num) {
     });
 }
 
-// Format angka persentase dengan 1 angka di belakang koma
+// Format angka persentase aktual (1 angka di belakang koma)
 function formatPercent(num) {
     if (num === null || !Number.isFinite(num)) return '0.0%';
     return `${num.toFixed(1)}%`;
 }
 
-// Ambil database (A:C) dan data live (E1:F7) sekaligus dalam 1 request
-// valueRenderOption=UNFORMATTED_VALUE memastikan angka seperti 4.161 terbaca murni sebagai 4161
+// Format angka persentase target (bulat jika tidak ada desimal, mis. 79% / 11%)
+function formatTargetPercent(num) {
+    if (num === null || !Number.isFinite(num)) return '-';
+    const rounded = Math.round(num * 10) / 10;
+    return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
+// Ambil database (A:C) dan data live (E1:G7) sekaligus dalam 1 request
 async function fetchSheetData() {
     const url =
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet` +
@@ -122,21 +143,25 @@ async function fetchSheetData() {
     };
 }
 
-// Perbarui seluruh panel performance dari range E2:F7
+// Perbarui seluruh panel performance dari range E2:G7 (Actual + Target)
 function renderPerformance(liveRows) {
     const rawValues = [];
+    const rawTargets = [];
 
     for (let i = 0; i < 6; i++) {
         const row = liveRows[i + 1] || []; // Index 1..6 = Baris 2..7 di Sheet
         const labelText = row[0] !== undefined && String(row[0]).trim() ? String(row[0]).trim() : DEFAULT_KPI_LABELS[i];
         const rawVal = row[1] !== undefined ? row[1] : '';
+        const rawTgt = row[2] !== undefined ? row[2] : '';
+
         rawValues.push(rawVal);
+        rawTargets.push(rawTgt);
 
         const labelEl = document.getElementById(`label-${i}`);
         if (labelEl) labelEl.textContent = labelText;
     }
 
-    // Parsing angka menit: F2=WH, F3=DANDORI, F4=DIES/FINGER, F5=MACHINE, F6=OTHER
+    // Parsing angka menit aktual: F2=WH, F3=DANDORI, F4=DIES/FINGER, F5=MACHINE, F6=OTHER
     const wh = parseSheetNumber(rawValues[0]);
     const losses = [
         parseSheetNumber(rawValues[1]) ?? 0,
@@ -145,65 +170,158 @@ function renderPerformance(liveRows) {
         parseSheetNumber(rawValues[4]) ?? 0
     ];
 
+    // Parsing target persentase dari Kolom G: G3..G6 (Loss Target), G7 (Availability Target)
+    const lossTargets = [
+        parseSheetPercent(rawTargets[1]),
+        parseSheetPercent(rawTargets[2]),
+        parseSheetPercent(rawTargets[3]),
+        parseSheetPercent(rawTargets[4])
+    ];
+    const availTarget = parseSheetPercent(rawTargets[5]);
+
     const hasWh = wh !== null && wh > 0;
     const totalLossMin = losses.reduce((sum, v) => sum + Math.max(0, v), 0);
 
     // Tampilkan nilai WH
     document.getElementById('value-0').textContent = wh !== null ? formatMinutes(wh) : '-';
 
-    // Hitung & tampilkan 4 kategori Loss Time beserta % terhadap WH
+    // Hitung & tampilkan 4 kategori Loss Time beserta % terhadap WH dan perbandingan Target
     const lossPcts = [];
+    let sumLossTarget = 0;
+    let hasAnyLossTarget = false;
+
     for (let i = 0; i < 4; i++) {
         const val = parseSheetNumber(rawValues[i + 1]);
         const safeVal = val !== null ? Math.max(0, val) : 0;
         const pct = hasWh ? (safeVal / wh) * 100 : 0;
+        const targetPct = lossTargets[i];
         lossPcts.push(pct);
 
         document.getElementById(`value-${i + 1}`).textContent = val !== null ? formatMinutes(val) : '-';
         document.getElementById(`pct-${i + 1}`).textContent = formatPercent(pct);
 
+        const cardEl = document.getElementById(`loss-card-${i + 1}`);
+        const targetBadgeEl = document.getElementById(`target-${i + 1}`);
         const barEl = document.getElementById(`bar-${i + 1}`);
-        if (barEl) {
-            barEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+        const markerEl = document.getElementById(`marker-${i + 1}`);
+
+        if (targetPct !== null) {
+            hasAnyLossTarget = true;
+            sumLossTarget += targetPct;
+
+            const isOver = pct > targetPct + 0.05; // toleransi pembulatan kecil
+            if (cardEl) cardEl.classList.toggle('is-over', isOver);
+
+            if (targetBadgeEl) {
+                targetBadgeEl.classList.remove('hidden', 'target-ok', 'target-over');
+                if (isOver) {
+                    targetBadgeEl.classList.add('target-over');
+                    targetBadgeEl.textContent = `OVER • Tgt ≤ ${formatTargetPercent(targetPct)}`;
+                } else {
+                    targetBadgeEl.classList.add('target-ok');
+                    targetBadgeEl.textContent = `OK • Tgt ≤ ${formatTargetPercent(targetPct)}`;
+                }
+            }
+
+            // Skala bullet bar adaptif agar garis target (mis. 1%, 3%, 6%, 11%) terlihat jelas
+            const scaleMax = Math.max(targetPct * 1.5, pct * 1.1, 2);
+            const barWidthPct = Math.min(100, Math.max(0, (pct / scaleMax) * 100));
+            const markerLeftPct = Math.min(100, Math.max(0, (targetPct / scaleMax) * 100));
+
+            if (barEl) barEl.style.width = `${barWidthPct}%`;
+            if (markerEl) {
+                markerEl.style.left = `${markerLeftPct}%`;
+                markerEl.classList.remove('hidden');
+            }
+        } else {
+            if (cardEl) cardEl.classList.remove('is-over');
+            if (targetBadgeEl) targetBadgeEl.classList.add('hidden');
+            if (markerEl) markerEl.classList.add('hidden');
+            if (barEl) barEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
         }
     }
 
     const totalLossPct = hasWh ? (totalLossMin / wh) * 100 : 0;
 
-    // Parsing AVAILABILITY dari F7 (fallback otomatis dari 100% - Total Loss% jika F7 kosong)
-    const rawAvail = rawValues[5];
-    const rawAvailStr = String(rawAvail ?? '').trim();
-    let availPct = parseSheetNumber(rawAvail);
-
-    if (availPct !== null) {
-        // Pada UNFORMATTED_VALUE, persentase Sheets (mis. 93,17% atau 100%) dikirim sebagai 0.9317 atau 1
-        if (!rawAvailStr.includes('%') && availPct >= 0 && availPct <= 1) {
-            availPct = availPct * 100;
-        }
-    } else if (hasWh) {
+    // Parsing AVAILABILITY aktual dari F7 (fallback otomatis dari 100% - Total Loss% jika F7 kosong)
+    let availPct = parseSheetPercent(rawValues[5]);
+    if (availPct === null && hasWh) {
         availPct = Math.max(0, 100 - totalLossPct);
     }
 
-    // Update tampilan nilai & warna status AVAILABILITY
+    // Update tampilan kartu AVAILABILITY + perbandingan dengan Target (G7)
     const availCard = document.getElementById('availability-card');
     const availValEl = document.getElementById('value-5');
     const availBadgeEl = document.getElementById('avail-badge');
+    const availTargetBox = document.getElementById('avail-target-box');
+    const availTargetText = document.getElementById('avail-target-text');
+    const availDeltaText = document.getElementById('avail-delta-text');
+    const availTargetMarker = document.getElementById('avail-target-marker');
+    const totalLossLabelEl = document.getElementById('total-loss-label');
+    const compTargetTextEl = document.getElementById('comp-target-text');
 
     availCard.classList.remove('status-good', 'status-warn', 'status-bad');
+
+    // Tampilkan batas total loss jika target tersedia
+    const maxLossTarget = availTarget !== null
+        ? Math.max(0, 100 - availTarget)
+        : (hasAnyLossTarget ? sumLossTarget : null);
+
+    if (totalLossLabelEl) {
+        totalLossLabelEl.textContent = maxLossTarget !== null
+            ? `TOTAL LOSS (MAX ${formatTargetPercent(maxLossTarget)})`
+            : 'TOTAL LOSS';
+    }
 
     if (availPct !== null) {
         const clampedAvail = Math.max(0, Math.min(100, availPct));
         availValEl.textContent = formatPercent(clampedAvail);
 
-        if (clampedAvail >= 85) {
+        // Ambang batas status dinamis mengikuti Target G7 (jika G7 kosong, default 85%)
+        const targetThreshold = availTarget !== null ? availTarget : 85;
+        const warnThreshold = Math.max(0, targetThreshold - 5);
+
+        if (clampedAvail >= targetThreshold) {
             availCard.classList.add('status-good');
             availBadgeEl.textContent = 'ON TARGET';
-        } else if (clampedAvail >= 75) {
+        } else if (clampedAvail >= warnThreshold) {
             availCard.classList.add('status-warn');
-            availBadgeEl.textContent = 'PERHATIAN';
+            availBadgeEl.textContent = 'MENDEKATI TARGET';
         } else {
             availCard.classList.add('status-bad');
             availBadgeEl.textContent = 'DI BAWAH TARGET';
+        }
+
+        // Kotak target & selisih di samping angka Availability + garis target di stacked bar
+        if (availTarget !== null) {
+            const delta = clampedAvail - availTarget;
+            const sign = delta >= 0 ? '+' : '';
+            availTargetText.textContent = `Target ≥ ${formatTargetPercent(availTarget)}`;
+            availDeltaText.textContent = `${sign}${delta.toFixed(1)}%`;
+            availDeltaText.classList.remove('delta-ok', 'delta-warn', 'delta-bad');
+
+            if (delta >= 0) {
+                availDeltaText.classList.add('delta-ok');
+            } else if (delta >= -5) {
+                availDeltaText.classList.add('delta-warn');
+            } else {
+                availDeltaText.classList.add('delta-bad');
+            }
+
+            availTargetBox.classList.remove('hidden');
+
+            availTargetMarker.style.left = `${Math.min(100, Math.max(0, availTarget))}%`;
+            availTargetMarker.classList.remove('hidden');
+
+            if (compTargetTextEl) {
+                compTargetTextEl.textContent = `Tgt Avail: ${formatTargetPercent(availTarget)}`;
+            }
+        } else {
+            availTargetBox.classList.add('hidden');
+            availTargetMarker.classList.add('hidden');
+            if (compTargetTextEl) {
+                compTargetTextEl.textContent = 'Total: 100%';
+            }
         }
 
         // Hitung menit running berdasarkan WH - Total Loss
@@ -232,6 +350,8 @@ function renderPerformance(liveRows) {
         availCard.classList.add('status-good');
         availValEl.textContent = '-';
         availBadgeEl.textContent = 'MENUNGGU DATA';
+        availTargetBox.classList.add('hidden');
+        availTargetMarker.classList.add('hidden');
         document.getElementById('running-minutes').textContent = '- minutes';
         document.getElementById('total-loss-summary').textContent = '- minutes (0.0%)';
         document.getElementById('seg-avail').style.width = '0%';
@@ -241,6 +361,7 @@ function renderPerformance(liveRows) {
         document.getElementById('seg-other').style.width = '0%';
         document.getElementById('comp-avail-text').textContent = 'Avail: -';
         document.getElementById('comp-loss-text').textContent = 'Loss: -';
+        if (compTargetTextEl) compTargetTextEl.textContent = 'Total: 100%';
     }
 }
 
@@ -258,7 +379,7 @@ async function updateDisplay() {
     try {
         const { database, liveRows } = await fetchSheetData();
 
-        // 1. Selalu perbarui panel performance (E2:F7) setiap 5 detik
+        // 1. Selalu perbarui panel performance (E2:G7) setiap 5 detik
         renderPerformance(liveRows);
 
         // 2. Baca Part Number / aktivitas aktif dari E1
