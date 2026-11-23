@@ -44,9 +44,11 @@ window.addEventListener('resize', checkFullScreenState);
 document.getElementById('fullscreen-catcher').addEventListener('click', enterFullScreen);
 document.getElementById('fullscreen-catcher').addEventListener('touchstart', enterFullScreen);
 
-// Konversi angka dari Google Sheets (mendukung format koma desimal ID maupun titik US)
+// Konversi angka dari Google Sheets (mendukung angka mentah UNFORMATTED_VALUE maupun teks format ID/US)
 function parseSheetNumber(raw) {
     if (raw === undefined || raw === null) return null;
+    if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+
     const str = String(raw).trim();
     if (!str || str === '-') return null;
 
@@ -64,8 +66,12 @@ function parseSheetNumber(raw) {
         } else {
             cleaned = cleaned.replace(/,/g, '');
         }
+    } else if (hasDot && !str.includes('%')) {
+        // Tangani format pemisah ribuan Indonesia (contoh: 4.161 atau 12.500)
+        if (/^-?\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+            cleaned = cleaned.replace(/\./g, '');
+        }
     } else if (hasComma) {
-        // Jika tepat 3 digit setelah koma dan tidak ada tanda %, bisa jadi pemisah ribuan (mis. 1,200)
         const parts = cleaned.split(',');
         if (parts.length === 2 && parts[1].length === 3 && !str.includes('%') && parts[0].length <= 3 && parts[0] !== '0') {
             cleaned = cleaned.replace(',', '');
@@ -78,11 +84,14 @@ function parseSheetNumber(raw) {
     return Number.isFinite(num) ? num : null;
 }
 
-// Format angka menit (bulat jika tidak ada desimal, 1 angka di belakang koma jika desimal)
+// Format angka menit (pakai pemisah ribuan koma agar tidak tertukar dengan desimal)
 function formatMinutes(num) {
     if (num === null || !Number.isFinite(num)) return '-';
     const rounded = Math.round(num * 10) / 10;
-    return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
+    return rounded.toLocaleString('en-US', {
+        minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+        maximumFractionDigits: 1
+    });
 }
 
 // Format angka persentase dengan 1 angka di belakang koma
@@ -92,11 +101,13 @@ function formatPercent(num) {
 }
 
 // Ambil database (A:C) dan data live (E1:F7) sekaligus dalam 1 request
+// valueRenderOption=UNFORMATTED_VALUE memastikan angka seperti 4.161 terbaca murni sebagai 4161
 async function fetchSheetData() {
     const url =
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet` +
         `?ranges=${encodeURIComponent(RANGE_PART_NUMBER)}` +
         `&ranges=${encodeURIComponent(RANGE_LIVE_DATA)}` +
+        `&valueRenderOption=UNFORMATTED_VALUE` +
         `&key=${API_KEY}`;
 
     const response = await fetch(url);
@@ -113,14 +124,12 @@ async function fetchSheetData() {
 
 // Perbarui seluruh panel performance dari range E2:F7
 function renderPerformance(liveRows) {
-    const labels = [];
     const rawValues = [];
 
     for (let i = 0; i < 6; i++) {
         const row = liveRows[i + 1] || []; // Index 1..6 = Baris 2..7 di Sheet
-        const labelText = row[0] && row[0].trim() ? row[0].trim() : DEFAULT_KPI_LABELS[i];
-        const rawVal = row[1] !== undefined ? String(row[1]).trim() : '';
-        labels.push(labelText);
+        const labelText = row[0] !== undefined && String(row[0]).trim() ? String(row[0]).trim() : DEFAULT_KPI_LABELS[i];
+        const rawVal = row[1] !== undefined ? row[1] : '';
         rawValues.push(rawVal);
 
         const labelEl = document.getElementById(`label-${i}`);
@@ -162,12 +171,13 @@ function renderPerformance(liveRows) {
     const totalLossPct = hasWh ? (totalLossMin / wh) * 100 : 0;
 
     // Parsing AVAILABILITY dari F7 (fallback otomatis dari 100% - Total Loss% jika F7 kosong)
-    const rawAvailStr = rawValues[5];
-    let availPct = parseSheetNumber(rawAvailStr);
+    const rawAvail = rawValues[5];
+    const rawAvailStr = String(rawAvail ?? '').trim();
+    let availPct = parseSheetNumber(rawAvail);
 
     if (availPct !== null) {
-        // Jika di sheet berbentuk desimal tanpa tanda % (contoh 0.90), ubah menjadi 90
-        if (!rawAvailStr.includes('%') && availPct > 0 && availPct <= 1) {
+        // Pada UNFORMATTED_VALUE, persentase Sheets (mis. 93,17% atau 100%) dikirim sebagai 0.9317 atau 1
+        if (!rawAvailStr.includes('%') && availPct >= 0 && availPct <= 1) {
             availPct = availPct * 100;
         }
     } else if (hasWh) {
@@ -252,7 +262,10 @@ async function updateDisplay() {
         renderPerformance(liveRows);
 
         // 2. Baca Part Number / aktivitas aktif dari E1
-        const currentPartNumber = liveRows[0] && liveRows[0][0] ? liveRows[0][0].trim() : null;
+        const currentPartNumber =
+            liveRows[0] && liveRows[0][0] !== undefined && String(liveRows[0][0]).trim()
+                ? String(liveRows[0][0]).trim()
+                : null;
 
         if (!currentPartNumber) {
             showError('Menunggu input Part Number di E1...');
@@ -260,7 +273,7 @@ async function updateDisplay() {
         }
 
         const match = database.find(
-            row => row[0] && row[0].trim().toUpperCase() === currentPartNumber.toUpperCase()
+            row => row[0] !== undefined && String(row[0]).trim().toUpperCase() === currentPartNumber.toUpperCase()
         );
 
         if (!match) {
@@ -268,8 +281,8 @@ async function updateDisplay() {
             return;
         }
 
-        const fileID = match[1] ? match[1].trim() : '';
-        const keterangan = match[2] ? match[2].trim() : '';
+        const fileID = match[1] !== undefined ? String(match[1]).trim() : '';
+        const keterangan = match[2] !== undefined ? String(match[2]).trim() : '';
         const normalizedKeterangan = keterangan.toUpperCase();
 
         // 3. Muat ulang iframe HANYA jika ID file Google Drive berubah
